@@ -1,0 +1,71 @@
+npm notice run garment-dpp@0.1.0 dev
+npm notice run next dev
+   ▲ Next.js 15.5.27
+   - Local:        http://localhost:3000
+   - Network:      http://192.168.0.110:3000
+   - Environments: .env.local
+
+ ✓ Starting...
+ ✓ Ready in 1509ms
+ ⚠ Cross origin request detected from 192.168.0.110 to /_next/* resource. In a future major version of Next.js, you will need to explicitly configure "allowedDevOrigins" in next.config to allow this.
+Read more: https://nextjs.org/docs/app/api-reference/config/next-config-js/allowedDevOrigins
+ ✓ Compiled /middleware in 174ms (220 modules)
+ ○ Compiling /api/health ...
+ ✓ Compiled /api/health in 855ms (315 modules)
+ GET /api/health 200 in 2242ms
+ ○ Compiling /login ...
+ ✓ Compiled /login in 1572ms (685 modules)
+ GET /login 200 in 2262ms
+ ○ Compiling /api/auth/[...nextauth] ...
+ ✓ Compiled /api/auth/[...nextauth] in 1145ms (909 modules)
+ GET /api/auth/providers 200 in 2769ms
+ GET /api/auth/csrf 200 in 56ms
+ POST /api/auth/callback/credentials 200 in 427ms
+ ○ Compiling /products ...
+ ✓ Compiled /products in 752ms (978 modules)
+ GET /products 200 in 1183ms
+ ○ Compiling /api/products ...
+ ✓ Compiled /api/products in 549ms (994 modules)
+ POST /api/products 201 in 1193ms
+ GET /api/products? 200 in 1215ms
+ ✓ Compiled /api/quality/catalogs in 488ms (999 modules)
+ POST /api/quality/catalogs 201 in 931ms
+ ✓ Compiled /api/products/[id] in 395ms (1003 modules)
+ PATCH /api/products/6ac17d5c3d6869ae0498f038 200 in 1618ms
+ ✓ Compiled /api/products/[id]/variants in 390ms (1006 modules)
+ PUT /api/products/6ac17d5c3d6869ae0498f038/variants 200 in 1783ms
+ ○ Compiling /api/products/[id]/materials ...
+ ✓ Compiled /api/products/[id]/materials in 690ms (1013 modules)
+ PUT /api/products/6ac17d5c3d6869ae0498f038/materials 200 in 2032ms
+ ○ Compiling /api/products/[id]/traceability ...
+ ✓ Compiled /api/products/[id]/traceability in 1140ms (1019 modules)
+ PUT /api/products/6ac17d5c3d6869ae0498f038/traceability 200 in 2408ms
+ ○ Compiling /api/products/[id]/quality/reports ...
+ ✓ Compiled /api/products/[id]/quality/reports in 568ms (1021 modules)
+ POST /api/products/6ac17d5c3d6869ae0498f038/quality/reports 201 in 1651ms
+ ✓ Compiled in 481ms (287 modules)
+ ✓ Compiled in 157ms (287 modules)
+ GET /login?next=%2Fproducts%2Fsdafas 200 in 380ms
+ ✓ Compiled /favicon.ico in 415ms (748 modules)
+ GET /favicon.ico 200 in 542ms
+ ✓ Compiled in 162ms (287 modules)
+ ✓ Compiled in 126ms (287 modules)
+ GET /login 200 in 190ms
+ GET /api/auth/providers 200 in 119ms
+ GET /api/auth/csrf 200 in 48ms
+ POST /api/auth/callback/credentials 200 in 408ms
+ GET /products 200 in 142ms
+ GET /api/products? 200 in 102ms
+ POST /api/products 201 in 214ms
+ POST /api/quality/catalogs 409 in 130ms
+ PATCH /api/products/6ac17dcb3d6869ae0498f08d 200 in 347ms
+ PUT /api/products/6ac17dcb3d6869ae0498f08d/variants 200 in 494ms
+ PUT /api/products/6ac17dcb3d6869ae0498f08d/materials 200 in 353ms
+ PUT /api/products/6ac17dcb3d6869ae0498f08d/traceability 200 in 434ms
+ POST /api/products/6ac17dcb3d6869ae0498f08d/quality/reports 201 in 268ms
+ ✓ Compiled /api/products/[id]/quality/results in 431ms (1022 modules)
+ POST /api/products/6ac17dcb3d6869ae0498f08d/quality/results 201 in 1904ms
+ POST /api/products/6ac17dcb3d6869ae0498f08d/quality/results 201 in 540ms
+ POST /api/products/6ac17dcb3d6869ae0498f08d/quality/results 201 in 752ms
+ ✓ Compiled in 529ms (733 modules)
+ ✓ Compiled in 115ms (287 modules)
