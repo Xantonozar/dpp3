@@ -35,6 +35,25 @@ const ARRANGEMENTS = [
   ["mixed", "Some processes at the same factory, others at different factories"],
 ];
 
+export const TIER3_COUNTRIES = [
+  "Bangladesh",
+  "India",
+  "China",
+  "Pakistan",
+  "Turkey",
+  "South Africa",
+  "Egypt",
+] as const;
+
+export const YARN_TYPES = [
+  "Ring spun",
+  "Open End/Rotor Spun",
+  "Compact spun",
+  "Air-Jet Spun",
+  "Other",
+  "Unknown",
+] as const;
+
 const blankGroup = (): Group => ({ name: "", location: "", processes: [], processStatus: "Assigned" });
 const blankYarn = (): Yarn => ({ name: "", location: "", country: "", yarnType: "", yarnCount: "", composition: "", referenceLot: "" });
 const blankOrigin = (): Origin => ({ countryOfManufacture: "", finalFactory: "", finalFactoryLocation: "", destinationCountry: "", destinationMarket: "", buyerBrand: "" });
@@ -110,7 +129,6 @@ function GroupCard({
 export function TraceabilitySection({ productId }: { productId: string }) {
   const [id] = useState(productId);
   const [countries, setCountries] = useState<{ code: string; label: string }[]>([]);
-  const [yarnTypes, setYarnTypes] = useState<{ code: string; label: string }[]>([]);
   const [origin, setOrigin] = useState<Origin>(blankOrigin());
   const [t1arr, setT1arr] = useState("");
   const [t1, setT1] = useState<Group[]>([blankGroup()]);
@@ -128,14 +146,12 @@ export function TraceabilitySection({ productId }: { productId: string }) {
 
   const load = useCallback(async (pid: string) => {
     setBusy(true);
-    const [co, yt, tr, prod] = await Promise.all([
+    const [co, tr, prod] = await Promise.all([
       fetch("/api/catalogs/country").then((r) => r.json()),
-      fetch("/api/catalogs/yarn_type").then((r) => r.json()),
       fetch(`/api/products/${pid}/traceability`).then((r) => r.json()),
       fetch(`/api/products/${pid}`).then((r) => r.json()),
     ]);
     setCountries((co.data ?? []).map((o: { code: string; label: string }) => ({ code: o.code, label: o.label })));
-    setYarnTypes((yt.data ?? []).map((o: { code: string; label: string }) => ({ code: o.code, label: o.label })));
     const d = tr.data;
     setOrigin({ ...blankOrigin(), ...(d?.originDestination ?? {}), buyerBrand: d?.originDestination?.buyerBrand ?? prod.data?.buyerBrand ?? "" });
     setT1arr(d?.tier1?.arrangement ?? "");
@@ -379,48 +395,64 @@ export function TraceabilitySection({ productId }: { productId: string }) {
             <div className="space-y-3">
               {yarns.map((y, i) => (
                 <CollapsibleSection key={i} id={`yarn-${i}`} level={3}
-                  title={y.name.trim() || `Yarn manufacturer ${i + 1}`}>
+                  title={y.name.trim() || `Yarn manufacturer ${i + 1}`}
+                  summary={[y.country, y.yarnType].filter(Boolean).join(" · ")}>
                   <div className="grid gap-3 sm:grid-cols-2">
                     <div>
-                      <label className="label" htmlFor={`yn-${i}`}>Name *</label>
-                      <input id={`yn-${i}`} className="input" value={y.name}
+                      <label className="label" htmlFor={`yn-${i}`}>Manufacturer name *</label>
+                      <input id={`yn-${i}`} className="input" placeholder="e.g. Dhaka Spinning Mills" value={y.name}
                         onChange={(e) => { const n = [...yarns]; n[i] = { ...n[i], name: e.target.value }; setYarns(n); touch(); }} />
                     </div>
                     <div>
                       <label className="label" htmlFor={`yl-${i}`}>Location *</label>
-                      <input id={`yl-${i}`} className="input" value={y.location}
+                      <input id={`yl-${i}`} className="input" placeholder="e.g. Narayanganj" value={y.location}
                         onChange={(e) => { const n = [...yarns]; n[i] = { ...n[i], location: e.target.value }; setYarns(n); touch(); }} />
                     </div>
-                    <div>
+                    <div className="sm:col-span-2">
                       <label className="label" htmlFor={`yc-${i}`}>Country of origin *</label>
                       <select id={`yc-${i}`} className="input" value={y.country}
                         onChange={(e) => { const n = [...yarns]; n[i] = { ...n[i], country: e.target.value }; setYarns(n); touch(); }}>
-                        <option value="">Select…</option>
-                        {countries.map((c) => <option key={c.code} value={c.label}>{c.label}</option>)}
+                        <option value="">Select country of origin…</option>
+                        {TIER3_COUNTRIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                        {y.country && !(TIER3_COUNTRIES as readonly string[]).includes(y.country) && (
+                          <option value={y.country}>{y.country}</option>
+                        )}
                       </select>
                     </div>
-                    <div>
-                      <label className="label" htmlFor={`yt-${i}`}>Yarn type</label>
-                      <select id={`yt-${i}`} className="input" value={y.yarnType}
-                        onChange={(e) => { const n = [...yarns]; n[i] = { ...n[i], yarnType: e.target.value }; setYarns(n); touch(); }}>
-                        <option value="">Select…</option>
-                        {yarnTypes.map((c) => <option key={c.code} value={c.label}>{c.label}</option>)}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="label" htmlFor={`yk-${i}`}>Yarn count (e.g. Ne 30/1)</label>
-                      <input id={`yk-${i}`} className="input" value={y.yarnCount}
-                        onChange={(e) => { const n = [...yarns]; n[i] = { ...n[i], yarnCount: e.target.value }; setYarns(n); touch(); }} />
-                    </div>
-                    <div>
-                      <label className="label" htmlFor={`yr-${i}`}>Reference lot</label>
-                      <input id={`yr-${i}`} className="input" value={y.referenceLot}
-                        onChange={(e) => { const n = [...yarns]; n[i] = { ...n[i], referenceLot: e.target.value }; setYarns(n); touch(); }} />
-                    </div>
-                    <div className="sm:col-span-2">
-                      <label className="label" htmlFor={`ym-${i}`}>Composition</label>
-                      <input id={`ym-${i}`} className="input" value={y.composition}
-                        onChange={(e) => { const n = [...yarns]; n[i] = { ...n[i], composition: e.target.value }; setYarns(n); touch(); }} />
+                  </div>
+
+                  {/* Yarn Details */}
+                  <div className="mt-4 rounded-xl border border-forest-100 bg-forest-50/50 p-4">
+                    <p className="mb-3 text-xs font-black uppercase tracking-wider text-forest-900">
+                      🧵 Yarn Details
+                    </p>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <div>
+                        <label className="label" htmlFor={`yt-${i}`}>Yarn Type</label>
+                        <select id={`yt-${i}`} className="input" value={y.yarnType}
+                          onChange={(e) => { const n = [...yarns]; n[i] = { ...n[i], yarnType: e.target.value }; setYarns(n); touch(); }}>
+                          <option value="">Select yarn type…</option>
+                          {YARN_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+                          {y.yarnType && !(YARN_TYPES as readonly string[]).includes(y.yarnType) && (
+                            <option value={y.yarnType}>{y.yarnType}</option>
+                          )}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="label" htmlFor={`yk-${i}`}>Yarn Count (optional)</label>
+                        <input id={`yk-${i}`} className="input" placeholder="e.g. Ne 30/1" value={y.yarnCount}
+                          onChange={(e) => { const n = [...yarns]; n[i] = { ...n[i], yarnCount: e.target.value }; setYarns(n); touch(); }} />
+                      </div>
+                      <div className="sm:col-span-2">
+                        <label className="label" htmlFor={`ym-${i}`}>Yarn Composition</label>
+                        <input id={`ym-${i}`} className="input" placeholder="e.g. 100% Cotton" value={y.composition}
+                          onChange={(e) => { const n = [...yarns]; n[i] = { ...n[i], composition: e.target.value }; setYarns(n); touch(); }} />
+                      </div>
+                      <div className="sm:col-span-2">
+                        <label className="label" htmlFor={`yr-${i}`}>Reference lot (optional)</label>
+                        <input id={`yr-${i}`} className="input" placeholder="e.g. Lot #123" value={y.referenceLot}
+                          onChange={(e) => { const n = [...yarns]; n[i] = { ...n[i], referenceLot: e.target.value }; setYarns(n); touch(); }} />
+                      </div>
                     </div>
                   </div>
                   <button onClick={() => removeYarn(i)} className="btn-secondary mt-3 !py-2 text-xs !text-red-700">

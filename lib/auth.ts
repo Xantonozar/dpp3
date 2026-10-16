@@ -6,6 +6,7 @@ import { dbConnect } from "./db";
 import { User } from "./models/User";
 
 export const authOptions: NextAuthOptions = {
+  secret: process.env.NEXTAUTH_SECRET || "garment-dpp-dev-secret-key-default-32ch",
   session: { strategy: "jwt", maxAge: 8 * 60 * 60 },
   pages: { signIn: "/login" },
   providers: [

@@ -5,7 +5,8 @@ import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
 function LoginForm() {
-  const next = useSearchParams().get("next") ?? "/products";
+  const searchParams = useSearchParams();
+  const next = searchParams?.get("next") ?? "/products";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");

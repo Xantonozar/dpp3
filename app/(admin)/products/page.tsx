@@ -11,6 +11,9 @@ type Product = {
   productId: string;
   name?: string;
   styleNo?: string;
+  brand?: string;
+  season?: string;
+  gender?: string;
   status: string;
   colors?: { name: string }[];
   updatedAt: string;
@@ -24,7 +27,14 @@ export default function ProductsPage() {
   const [msg, setMsg] = useState("");
   const [loadErr, setLoadErr] = useState("");
   const [showCreate, setShowCreate] = useState(false);
-  const [form, setForm] = useState({ productId: "", name: "", styleNo: "" });
+  const [form, setForm] = useState({
+    productId: "",
+    name: "",
+    styleNo: "",
+    brand: "",
+    season: "",
+    gender: "",
+  });
 
   async function load() {
     setBusy(true);
@@ -63,7 +73,7 @@ export default function ProductsPage() {
       return;
     }
     setShowCreate(false);
-    setForm({ productId: "", name: "", styleNo: "" });
+    setForm({ productId: "", name: "", styleNo: "", brand: "", season: "", gender: "" });
     load();
   }
 
@@ -121,6 +131,36 @@ export default function ProductsPage() {
                 onChange={(e) => setForm({ ...form, styleNo: e.target.value })}
                 placeholder="SS26-01" />
             </div>
+            <div>
+              <label className="label" htmlFor="pbrand">Brand name</label>
+              <input id="pbrand" className="input" value={form.brand}
+                onChange={(e) => setForm({ ...form, brand: e.target.value })}
+                placeholder="EcoWear" />
+            </div>
+            <div>
+              <label className="label" htmlFor="pseason">Season</label>
+              <select id="pseason" className="input" value={form.season}
+                onChange={(e) => setForm({ ...form, season: e.target.value })}>
+                <option value="">Select season…</option>
+                <option value="Spring/Summer">1. Spring/Summer</option>
+                <option value="Autumn/Winter">2. Autumn/Winter</option>
+                <option value="All season">3. All season</option>
+                <option value="Other">4. Other</option>
+              </select>
+            </div>
+            <div>
+              <label className="label" htmlFor="pgender">Gender</label>
+              <select id="pgender" className="input" value={form.gender}
+                onChange={(e) => setForm({ ...form, gender: e.target.value })}>
+                <option value="">Select gender…</option>
+                <option value="Boys">Boys</option>
+                <option value="Girls">Girls</option>
+                <option value="Mens">Mens</option>
+                <option value="Womens">Womens</option>
+                <option value="Unisex">Unisex</option>
+                <option value="Baby unisex">Baby unisex</option>
+              </select>
+            </div>
           </div>
           {msg && <p role="alert" className="text-sm font-semibold text-red-700">{msg}</p>}
           <button className="btn-primary" type="submit">Create product</button>
@@ -150,10 +190,15 @@ export default function ProductsPage() {
         {items.map((p) => (
           <div key={p._id} data-tour="product-card" className="card flex flex-wrap items-center gap-3 p-4">
             <div className="min-w-0 flex-1">
-              <p className="truncate text-[15px] font-extrabold text-forest-950">
-                {p.name || p.productId}
-                <span className="ml-2 font-mono text-xs font-semibold text-forest-900/50">{p.productId}</span>
-              </p>
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="truncate text-[15px] font-extrabold text-forest-950">
+                  {p.name || p.productId}
+                  <span className="ml-2 font-mono text-xs font-semibold text-forest-900/50">{p.productId}</span>
+                </p>
+                {p.brand && <span className="badge bg-forest-100 font-bold text-forest-800">{p.brand}</span>}
+                {p.season && <span className="badge bg-mint-100 text-forest-900">{p.season}</span>}
+                {p.gender && <span className="badge bg-stone-100 text-stone-700">{p.gender}</span>}
+              </div>
               <p className="text-xs text-forest-900/60">
                 {p.colors?.length ?? 0} colors · {p.status} · {p.styleNo ?? "no style"}
               </p>

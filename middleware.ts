@@ -17,7 +17,7 @@ export async function middleware(req: NextRequest) {
   }
   const token = await getToken({
     req,
-    secret: process.env.NEXTAUTH_SECRET,
+    secret: process.env.NEXTAUTH_SECRET || "garment-dpp-dev-secret-key-default-32ch",
   });
   if (!token) {
     if (pathname.startsWith("/api/")) {

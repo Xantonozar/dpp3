@@ -28,7 +28,8 @@ function safeSet(key: string, value: string) {
   }
 }
 
-function isProductPath(pathname: string) {
+function isProductPath(pathname: string | null) {
+  if (!pathname) return false;
   return /^\/products\/[^/]+$/.test(pathname);
 }
 

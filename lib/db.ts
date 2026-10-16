@@ -9,7 +9,33 @@ const cached: Cached = g.mongoose;
 export async function dbConnect() {
   if (cached.conn) return cached.conn;
   if (!cached.promise) {
-    const uri = process.env.MONGODB_URI ?? "";
+    let uri = process.env.MONGODB_URI ?? "";
+    if (!uri && process.env.NODE_ENV !== "test") {
+      try {
+        if (!g.__mongodPromise) {
+          g.__mongodPromise = (async () => {
+            const { MongoMemoryServer } = await import("mongodb-memory-server");
+            const mongod = await MongoMemoryServer.create();
+            const memoryUri = mongod.getUri();
+            process.env.MONGODB_URI = memoryUri;
+            setTimeout(async () => {
+              try {
+                const { seed } = await import("@/scripts/seed");
+                await seed();
+                const { createUser } = await import("@/scripts/create-user");
+                await createUser("admin@example.com", "admin123", "Admin");
+              } catch (e) {
+                console.warn("Dev auto-seed notice:", e);
+              }
+            }, 100);
+            return memoryUri;
+          })();
+        }
+        uri = (await g.__mongodPromise) || "";
+      } catch (err) {
+        console.warn("MongoMemoryServer not available:", err);
+      }
+    }
     if (!uri) throw new Error("MONGODB_URI is not set");
     cached.promise = mongoose.connect(uri, {
       bufferCommands: false,

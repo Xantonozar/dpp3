@@ -22,7 +22,15 @@ const NAV: [string, string][] = [
   ["sec-review", "08 Review & Publish"],
 ];
 
-type Product = { productId: string; name?: string; styleNo?: string; status: string };
+type Product = {
+  productId: string;
+  name?: string;
+  styleNo?: string;
+  brand?: string;
+  season?: string;
+  gender?: string;
+  status: string;
+};
 
 export default function ProductPage({ params }: { params: Promise<{ productId: string }> }) {
   const [id, setId] = useState("");
@@ -46,13 +54,30 @@ export default function ProductPage({ params }: { params: Promise<{ productId: s
           ← Products
         </Link>
         <div className="min-w-0 flex-1">
-          <h1 className="truncate text-2xl font-black tracking-tight text-forest-950">
-            {product ? product.name || product.productId : "Loading…"}
-          </h1>
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="truncate text-2xl font-black tracking-tight text-forest-950">
+              {product ? product.name || product.productId : "Loading…"}
+            </h1>
+            {product?.brand && (
+              <span className="badge bg-forest-100 font-bold text-forest-800">
+                {product.brand}
+              </span>
+            )}
+            {product?.season && (
+              <span className="badge bg-mint-100 font-semibold text-forest-900">
+                {product.season}
+              </span>
+            )}
+            {product?.gender && (
+              <span className="badge bg-stone-100 font-semibold text-stone-700">
+                {product.gender}
+              </span>
+            )}
+          </div>
           {product && (
-            <p className="text-sm text-forest-900/60">
+            <p className="mt-1 text-sm text-forest-900/60">
               <span className="font-mono font-semibold">{product.productId}</span>
-              {product.styleNo ? ` · ${product.styleNo}` : ""}
+              {product.styleNo ? ` · Style ${product.styleNo}` : ""}
               {` · ${product.status}`}
             </p>
           )}

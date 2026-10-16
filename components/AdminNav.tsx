@@ -12,7 +12,8 @@ const LINKS = [
   { label: "Help", href: "/help" },
 ];
 
-function isActive(pathname: string, href: string) {
+function isActive(pathname: string | null, href: string) {
+  if (!pathname) return false;
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 

@@ -73,7 +73,7 @@ export async function PATCH(req: Request, { params }: Ctx) {
       doc.sizeSystemKey = data.sizeSystemKey;
     }
 
-    for (const f of ["styleNo", "name", "productType", "buyerBrand", "status"] as const) {
+    for (const f of ["styleNo", "name", "brand", "season", "gender", "productType", "buyerBrand", "status"] as const) {
       if (data[f] !== undefined) (doc as unknown as Record<string, unknown>)[f] = data[f];
     }
 

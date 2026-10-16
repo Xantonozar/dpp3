@@ -18,10 +18,29 @@ const ColorInput = z.object({
   status: z.enum(["active", "archived"]).optional(),
 });
 
+export const SEASON_OPTIONS = [
+  "Spring/Summer",
+  "Autumn/Winter",
+  "All season",
+  "Other",
+] as const;
+
+export const GENDER_OPTIONS = [
+  "Boys",
+  "Girls",
+  "Mens",
+  "Womens",
+  "Unisex",
+  "Baby unisex",
+] as const;
+
 export const ProductCreate = z.object({
   productId: z.string().trim().min(1, "Product ID is required").max(60),
   styleNo: z.string().trim().max(60).optional(),
   name: z.string().trim().max(200).optional(),
+  brand: z.string().trim().max(120).optional(),
+  season: z.string().trim().max(60).optional(),
+  gender: z.string().trim().max(60).optional(),
   productType: z.string().trim().max(120).optional(),
   buyerBrand: z.string().trim().max(120).optional(),
   sizeSystemKey: z.string().trim().max(60).optional(),
@@ -30,6 +49,9 @@ export const ProductCreate = z.object({
 export const ProductPatch = z.object({
   styleNo: z.string().trim().max(60).optional(),
   name: z.string().trim().max(200).optional(),
+  brand: z.string().trim().max(120).optional(),
+  season: z.string().trim().max(60).optional(),
+  gender: z.string().trim().max(60).optional(),
   productType: z.string().trim().max(120).optional(),
   buyerBrand: z.string().trim().max(120).optional(),
   sizeSystemKey: z.string().trim().max(60).optional(),

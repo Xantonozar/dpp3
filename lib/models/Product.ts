@@ -33,6 +33,9 @@ const ProductSchema = new Schema(
     name: { type: String, trim: true, maxlength: 200 },
     productType: { type: String, trim: true, maxlength: 120 },
     buyerBrand: { type: String, trim: true, maxlength: 120 },
+    brand: { type: String, trim: true, maxlength: 120 },
+    season: { type: String, trim: true, maxlength: 60 },
+    gender: { type: String, trim: true, maxlength: 60 },
     sizeSystemKey: { type: String, trim: true },
     colors: { type: [ColorSchema], default: [] },
     status: {

@@ -35,6 +35,7 @@ export async function generateMetadata({
 type Snap = {
   header: {
     name: string; productId: string; styleNo: string; productType: string; buyerBrand: string;
+    brand?: string; season?: string; gender?: string;
     colors: { name: string; images: { url: string; alt: string }[] }[];
     sizes: { key: string; label: string }[];
     variants: { vid: string; color: string; size: string }[];
@@ -46,7 +47,15 @@ type Snap = {
   traceability: null | {
     origin: Record<string, string>;
     tiers: { tier: string; process: string; factory: string; location: string; note: string }[];
-    yarn: { name: string; location: string; country: string }[];
+    yarn: {
+      name: string;
+      location: string;
+      country: string;
+      yarnType?: string;
+      yarnCount?: string;
+      composition?: string;
+      referenceLot?: string;
+    }[];
   };
   quality: { kind: string; name: string; [k: string]: unknown }[];
   packaging: null | { type: string; materials: string[]; recycledContent: string; recyclability: string; instructions: string };
@@ -160,7 +169,7 @@ export default async function PublicPage({
           </p>
           <h1 className="mt-1 text-3xl font-black tracking-tight text-forest-950">{h.name}</h1>
           <p className="mt-1 text-sm text-forest-900/60">
-            {[h.productType, h.styleNo && `Style ${h.styleNo}`, h.buyerBrand].filter(Boolean).join(" · ")}
+            {[h.brand || h.buyerBrand, h.productType, h.styleNo && `Style ${h.styleNo}`, h.season, h.gender].filter(Boolean).join(" · ")}
           </p>
           {heroImg && (
             // eslint-disable-next-line @next/next/no-img-element
@@ -272,7 +281,41 @@ export default async function PublicPage({
                 </table>
               </div>
               {s.traceability.yarn.length > 0 && (
-                <p className="mt-2 text-sm"><strong>Yarn:</strong> {s.traceability.yarn.map((y) => `${y.name} (${y.country})`).join("; ")}</p>
+                <div className="mt-3 border-t border-forest-100 pt-3">
+                  <p className="text-xs font-bold uppercase tracking-wider text-forest-800">
+                    Tier 3 Yarn Manufacturers
+                  </p>
+                  <div className="mt-2 space-y-2">
+                    {s.traceability.yarn.map((y, i) => (
+                      <div key={i} className="rounded-xl bg-forest-50/70 p-3 text-xs text-forest-950 ring-1 ring-forest-100/60">
+                        <div className="flex flex-wrap items-center justify-between gap-1 font-bold">
+                          <span className="text-sm text-forest-950">{y.name}</span>
+                          <span className="badge bg-forest-100 text-forest-800">{y.country}</span>
+                        </div>
+                        {y.location && <p className="mt-0.5 text-forest-900/60">{y.location}</p>}
+                        {(y.yarnType || y.yarnCount || y.composition) && (
+                          <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 rounded-lg bg-white/80 p-2 text-[11px] text-forest-900/80">
+                            {y.yarnType && (
+                              <span>
+                                <strong className="text-forest-950">Yarn Type:</strong> {y.yarnType}
+                              </span>
+                            )}
+                            {y.yarnCount && (
+                              <span>
+                                <strong className="text-forest-950">Yarn Count:</strong> {y.yarnCount}
+                              </span>
+                            )}
+                            {y.composition && (
+                              <span>
+                                <strong className="text-forest-950">Composition:</strong> {y.composition}
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
               )}
             </Section>
           </div>

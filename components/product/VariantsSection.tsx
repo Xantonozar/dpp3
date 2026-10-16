@@ -11,6 +11,9 @@ import { apiErrorMessage } from "@/lib/apiError";
 const PRODUCT_LABELS: Record<string, string> = {
   styleNo: "Style no.",
   name: "Name",
+  brand: "Brand name",
+  season: "Season",
+  gender: "Gender",
   productType: "Product type",
   buyerBrand: "Buyer",
   sizeSystemKey: "Size system",
@@ -29,6 +32,7 @@ type ColorImage = { publicId?: string; secureUrl?: string; altText?: string; sor
 type Color = { _id: string; name: string; colorCode?: string; images: ColorImage[]; status: string; sortOrder: number };
 type Product = {
   _id: string; productId: string; name?: string; styleNo?: string;
+  brand?: string; season?: string; gender?: string;
   productType?: string; buyerBrand?: string; sizeSystemKey?: string; colors: Color[];
 };
 type Variant = { colorId: string; sizeKey: string; gtin?: string; gtinStatus: string; active: boolean };
@@ -43,7 +47,15 @@ export function VariantsSection({ productId }: { productId: string }) {
   const [pendingSystem, setPendingSystem] = useState("");
   const [selected, setSelected] = useState<Record<string, string[]>>({});
   const [gtins, setGtins] = useState<Record<string, { gtin: string; gtinStatus: string }>>({});
-  const [header, setHeader] = useState({ name: "", styleNo: "", productType: "", buyerBrand: "" });
+  const [header, setHeader] = useState({
+    name: "",
+    styleNo: "",
+    brand: "",
+    season: "",
+    gender: "",
+    productType: "",
+    buyerBrand: "",
+  });
   const [newColorName, setNewColorName] = useState("");
   const [busy, setBusy] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -61,7 +73,15 @@ export function VariantsSection({ productId }: { productId: string }) {
     setProduct(p);
     setSystems(s.data ?? []);
     setPendingSystem(p.sizeSystemKey ?? "");
-    setHeader({ name: p.name ?? "", styleNo: p.styleNo ?? "", productType: p.productType ?? "", buyerBrand: p.buyerBrand ?? "" });
+    setHeader({
+      name: p.name ?? "",
+      styleNo: p.styleNo ?? "",
+      brand: p.brand ?? "",
+      season: p.season ?? "",
+      gender: p.gender ?? "",
+      productType: p.productType ?? "",
+      buyerBrand: p.buyerBrand ?? "",
+    });
     const sel: Record<string, string[]> = {};
     const g: Record<string, { gtin: string; gtinStatus: string }> = {};
     for (const c of p.colors) sel[String(c._id)] = [];
@@ -316,25 +336,64 @@ export function VariantsSection({ productId }: { productId: string }) {
       <CollapsibleSection id="variants" level={1} help={() => startTour("variants", "variants")} title="1. Product Variants"
         summary={`${activeColors.length} colors, ${totalVariants} variants`} defaultOpen>
         <div className="space-y-3">
-          <CollapsibleSection id="variants-system" level={2} help={() => startTour("variants", "variants-system")} title="1.1 Size System"
-            summary={system ? system.name : "Not selected"} defaultOpen>
-            <label className="label" htmlFor="sys">Size system</label>
-            <select id="sys" className="input max-w-xs" value={pendingSystem}
-              onChange={(e) => changeSystem(e.target.value)}>
-              <option value="">Select a system…</option>
-              {systems.map((s) => (
-                <option key={s.key} value={s.key}>{s.name}</option>
-              ))}
-            </select>
-            <p className="mt-1 text-xs text-forest-900/60">Changing systems archives existing variants (Reset) — never auto-maps sizes.</p>
-            <div className="mt-3 grid gap-3 sm:grid-cols-2">
-              {(["name", "styleNo", "productType", "buyerBrand"] as const).map((f) => (
-                <div key={f}>
-                  <label className="label" htmlFor={`h-${f}`}>{f}</label>
-                  <input id={`h-${f}`} className="input" value={header[f]}
-                    onChange={(e) => setHeader({ ...header, [f]: e.target.value })} />
-                </div>
-              ))}
+          <CollapsibleSection id="variants-system" level={2} help={() => startTour("variants", "variants-system")} title="1.1 Product Overview & Size System"
+            summary={system ? `${header.brand ? header.brand + " · " : ""}${system.name}` : "Product overview & size system"} defaultOpen>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              <div>
+                <label className="label" htmlFor="h-name">Product Name</label>
+                <input id="h-name" className="input" placeholder="e.g. Organic Cotton Tee" value={header.name}
+                  onChange={(e) => setHeader({ ...header, name: e.target.value })} />
+              </div>
+              <div>
+                <label className="label" htmlFor="h-styleNo">Style no.</label>
+                <input id="h-styleNo" className="input" placeholder="e.g. SS26-01" value={header.styleNo}
+                  onChange={(e) => setHeader({ ...header, styleNo: e.target.value })} />
+              </div>
+              <div>
+                <label className="label" htmlFor="h-brand">Brand name</label>
+                <input id="h-brand" className="input" placeholder="e.g. EcoWear" value={header.brand}
+                  onChange={(e) => setHeader({ ...header, brand: e.target.value })} />
+              </div>
+              <div>
+                <label className="label" htmlFor="h-season">Season</label>
+                <select id="h-season" className="input" value={header.season}
+                  onChange={(e) => setHeader({ ...header, season: e.target.value })}>
+                  <option value="">Select season…</option>
+                  <option value="Spring/Summer">1. Spring/Summer</option>
+                  <option value="Autumn/Winter">2. Autumn/Winter</option>
+                  <option value="All season">3. All season</option>
+                  <option value="Other">4. Other</option>
+                </select>
+              </div>
+              <div>
+                <label className="label" htmlFor="h-gender">Gender</label>
+                <select id="h-gender" className="input" value={header.gender}
+                  onChange={(e) => setHeader({ ...header, gender: e.target.value })}>
+                  <option value="">Select gender…</option>
+                  <option value="Boys">Boys</option>
+                  <option value="Girls">Girls</option>
+                  <option value="Mens">Mens</option>
+                  <option value="Womens">Womens</option>
+                  <option value="Unisex">Unisex</option>
+                  <option value="Baby unisex">Baby unisex</option>
+                </select>
+              </div>
+              <div>
+                <label className="label" htmlFor="h-productType">Product type</label>
+                <input id="h-productType" className="input" placeholder="e.g. T-Shirt" value={header.productType}
+                  onChange={(e) => setHeader({ ...header, productType: e.target.value })} />
+              </div>
+              <div className="sm:col-span-2 lg:col-span-3 border-t border-forest-100 pt-3">
+                <label className="label" htmlFor="sys">Size system</label>
+                <select id="sys" className="input max-w-xs" value={pendingSystem}
+                  onChange={(e) => changeSystem(e.target.value)}>
+                  <option value="">Select a system…</option>
+                  {systems.map((s) => (
+                    <option key={s.key} value={s.key}>{s.name}</option>
+                  ))}
+                </select>
+                <p className="mt-1 text-xs text-forest-900/60">Changing systems archives existing variants (Reset) — never auto-maps sizes.</p>
+              </div>
             </div>
           </CollapsibleSection>
 

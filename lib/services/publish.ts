@@ -121,6 +121,9 @@ export async function buildSnapshot(productId: string): Promise<Record<string, u
     styleNo?: string;
     productType?: string;
     buyerBrand?: string;
+    brand?: string;
+    season?: string;
+    gender?: string;
     sizeSystemKey?: string;
     colors: { _id: unknown; name: string; colorCode?: string; images: { secureUrl?: string; altText?: string }[] }[];
   };
@@ -169,7 +172,17 @@ export async function buildSnapshot(productId: string): Promise<Record<string, u
     originDestination: Record<string, string>;
     tier1: { facilities: { name: string; location: string; processes: string[]; processStatus: string }[] };
     tier2: { printingStatus?: string; facilities: { name: string; location: string; processes: string[]; processStatus: string }[] };
-    tier3: { yarnManufacturers: { name: string; location: string; country: string }[] };
+    tier3: {
+      yarnManufacturers: {
+        name: string;
+        location: string;
+        country: string;
+        yarnType?: string;
+        yarnCount?: string;
+        composition?: string;
+        referenceLot?: string;
+      }[];
+    };
   };
   const e = environmental as unknown as null | {
     inputs: { gridSharePct: number; solarSharePct: number };
@@ -262,6 +275,9 @@ export async function buildSnapshot(productId: string): Promise<Record<string, u
       styleNo: p.styleNo ?? "",
       productType: p.productType ?? "",
       buyerBrand: p.buyerBrand ?? "",
+      brand: p.brand ?? p.buyerBrand ?? "",
+      season: p.season ?? "",
+      gender: p.gender ?? "",
       colors: p.colors.map((c) => ({
         name: c.name,
         images: (c.images ?? []).map((im) => ({ url: im.secureUrl ?? "", alt: im.altText ?? c.name })),
@@ -298,7 +314,15 @@ export async function buildSnapshot(productId: string): Promise<Record<string, u
             destinationMarket: t.originDestination?.destinationMarket ?? "",
           },
           tiers: tierRows,
-          yarn: (t.tier3?.yarnManufacturers ?? []).map((y) => ({ name: y.name, location: y.location, country: y.country })),
+          yarn: (t.tier3?.yarnManufacturers ?? []).map((y) => ({
+            name: y.name,
+            location: y.location,
+            country: y.country,
+            yarnType: y.yarnType ?? "",
+            yarnCount: y.yarnCount ?? "",
+            composition: y.composition ?? "",
+            referenceLot: y.referenceLot ?? "",
+          })),
         }
       : null,
     quality,
