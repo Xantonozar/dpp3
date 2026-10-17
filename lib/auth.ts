@@ -5,10 +5,53 @@ import { getServerSession } from "next-auth";
 import { dbConnect } from "./db";
 import { User } from "./models/User";
 
+// Support AI Studio preview container and Vercel deployments automatically
+if (process.env.APP_URL) {
+  process.env.NEXTAUTH_URL = process.env.APP_URL;
+} else if (process.env.VERCEL_URL) {
+  process.env.NEXTAUTH_URL = `https://${process.env.VERCEL_URL}`;
+}
+
+const isHttps =
+  Boolean(process.env.APP_URL?.startsWith("https")) ||
+  Boolean(process.env.VERCEL) ||
+  Boolean(process.env.VERCEL_URL) ||
+  Boolean(process.env.NEXTAUTH_URL?.startsWith("https")) ||
+  process.env.NODE_ENV === "production";
+
 export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET || "garment-dpp-dev-secret-key-default-32ch",
   session: { strategy: "jwt", maxAge: 8 * 60 * 60 },
   pages: { signIn: "/login" },
+  useSecureCookies: isHttps,
+  cookies: {
+    sessionToken: {
+      name: isHttps ? "__Secure-next-auth.session-token" : "next-auth.session-token",
+      options: {
+        httpOnly: true,
+        sameSite: isHttps ? "none" : "lax",
+        path: "/",
+        secure: isHttps,
+      },
+    },
+    callbackUrl: {
+      name: isHttps ? "__Secure-next-auth.callback-url" : "next-auth.callback-url",
+      options: {
+        sameSite: isHttps ? "none" : "lax",
+        path: "/",
+        secure: isHttps,
+      },
+    },
+    csrfToken: {
+      name: isHttps ? "__Host-next-auth.csrf-token" : "next-auth.csrf-token",
+      options: {
+        httpOnly: true,
+        sameSite: isHttps ? "none" : "lax",
+        path: "/",
+        secure: isHttps,
+      },
+    },
+  },
   providers: [
     CredentialsProvider({
       name: "Credentials",
@@ -51,6 +94,16 @@ export const authOptions: NextAuthOptions = {
           token.role ?? "admin";
       }
       return session;
+    },
+    async redirect({ url, baseUrl }) {
+      if (url.startsWith("/")) return url;
+      try {
+        const parsed = new URL(url);
+        if (parsed.origin === baseUrl) return url;
+        return parsed.pathname + parsed.search;
+      } catch {
+        return "/products";
+      }
     },
   },
 };

@@ -100,6 +100,14 @@ export function VariantsSection({ productId }: { productId: string }) {
     if (id) load(id);
   }, [id, load]);
 
+  useEffect(() => {
+    const onUpdated = () => {
+      if (id) load(id);
+    };
+    window.addEventListener("product:updated", onUpdated);
+    return () => window.removeEventListener("product:updated", onUpdated);
+  }, [id, load]);
+
   const system = useMemo(
     () => systems.find((s) => s.key === (product?.sizeSystemKey ?? pendingSystem)),
     [systems, product, pendingSystem]

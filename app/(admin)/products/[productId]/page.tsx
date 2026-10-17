@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { ProductOverviewCard } from "@/components/product/ProductOverviewCard";
 import { VariantsSection } from "@/components/product/VariantsSection";
 import { MaterialsSection } from "@/components/product/MaterialsSection";
 import { TraceabilitySection } from "@/components/product/TraceabilitySection";
@@ -12,6 +13,7 @@ import { CertificationSection } from "@/components/product/CertificationSection"
 import { ReviewSection } from "@/components/product/ReviewSection";
 
 const NAV: [string, string][] = [
+  ["sec-overview", "00 Overview"],
   ["sec-variants", "01 Variants"],
   ["sec-materials", "02 Materials"],
   ["sec-traceability", "03 Traceability"],
@@ -99,6 +101,23 @@ export default function ProductPage({ params }: { params: Promise<{ productId: s
 
       {id ? (
         <>
+          <section id="sec-overview" className="scroll-mt-32">
+            <ProductOverviewCard
+              productId={id}
+              initialProduct={product}
+              onUpdate={(updated) =>
+                setProduct((prev) =>
+                  prev
+                    ? {
+                        ...prev,
+                        ...updated,
+                        status: updated.status ?? prev.status,
+                      }
+                    : null
+                )
+              }
+            />
+          </section>
           <section id="sec-variants" className="scroll-mt-32">
             <VariantsSection productId={id} />
           </section>

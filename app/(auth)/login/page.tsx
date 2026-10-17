@@ -16,18 +16,55 @@ function LoginForm() {
     e.preventDefault();
     setBusy(true);
     setError("");
-    const res = await signIn("credentials", {
-      email,
-      password,
-      redirect: false,
-      callbackUrl: next,
-    });
-    setBusy(false);
-    if (res?.error) {
-      setError("Invalid email or password.");
-      return;
+
+    try {
+      const res = await signIn("credentials", {
+        email: email.trim(),
+        password,
+        redirect: false,
+        callbackUrl: next,
+      });
+
+      setBusy(false);
+
+      if (
+        !res ||
+        res.error ||
+        !res.ok ||
+        res.url?.includes("error=") ||
+        res.url?.includes("csrf=true")
+      ) {
+        setError("Invalid email or password.");
+        return;
+      }
+
+      // Successful login -> route to destination or default to /products
+      let target =
+        next && next.startsWith("/") && next !== "/login" && next !== "/"
+          ? next
+          : "/products";
+
+      if (res.url) {
+        try {
+          const parsed = new URL(res.url);
+          if (
+            parsed.pathname &&
+            parsed.pathname !== "/" &&
+            parsed.pathname !== "/login" &&
+            !parsed.pathname.includes("/api/auth")
+          ) {
+            target = parsed.pathname + parsed.search;
+          }
+        } catch {
+          // ignore
+        }
+      }
+
+      window.location.href = target;
+    } catch {
+      setBusy(false);
+      setError("Unable to sign in. Please verify your credentials and try again.");
     }
-    window.location.href = res?.url ?? next;
   }
 
   return (
