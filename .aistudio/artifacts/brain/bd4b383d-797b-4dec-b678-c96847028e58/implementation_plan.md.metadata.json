@@ -1,0 +1,6 @@
+{
+  "summary": "Architectural implementation plan for the streamlined 12-substance Chemical & RSL compliance module. Defines the 12 typical substance groups, automatic requirement lookup, 3-state status selection (PASS, FAIL, NOT VERIFIED), and clear consumer-facing public passport rendering.",
+  "updatedAt": "2026-10-17T19:31:51.767815895Z",
+  "requestFeedback": true,
+  "userFacing": true
+}

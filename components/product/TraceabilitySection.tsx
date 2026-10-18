@@ -294,37 +294,27 @@ export function TraceabilitySection({ productId }: { productId: string }) {
                 <label className="label" htmlFor="o-com">Country of manufacture *</label>
                 <select id="o-com" className="input" value={origin.countryOfManufacture}
                   onChange={(e) => { setOrigin({ ...origin, countryOfManufacture: e.target.value }); touch(); }}>
-                  <option value="">Select…</option>
+                  <option value="">Select country of manufacture…</option>
                   {countries.map((c) => <option key={c.code} value={c.label}>{c.label}</option>)}
                 </select>
               </div>
               <div>
-                <label className="label" htmlFor="o-dest">Destination country *</label>
+                <label className="label" htmlFor="o-dest">Destination country / market *</label>
                 <select id="o-dest" className="input" value={origin.destinationCountry}
                   onChange={(e) => { setOrigin({ ...origin, destinationCountry: e.target.value }); touch(); }}>
-                  <option value="">Select…</option>
+                  <option value="">Select destination…</option>
                   <option value="Not specified">Not specified</option>
                   {countries.map((c) => <option key={c.code} value={c.label}>{c.label}</option>)}
                 </select>
               </div>
               <div>
-                <label className="label" htmlFor="o-ff">Final factory *</label>
-                <input id="o-ff" className="input" value={origin.finalFactory}
-                  onChange={(e) => { setOrigin({ ...origin, finalFactory: e.target.value }); touch(); }} />
-              </div>
-              <div>
-                <label className="label" htmlFor="o-ffl">Final factory location *</label>
-                <input id="o-ffl" className="input" value={origin.finalFactoryLocation}
-                  onChange={(e) => { setOrigin({ ...origin, finalFactoryLocation: e.target.value }); touch(); }} />
-              </div>
-              <div>
-                <label className="label" htmlFor="o-market">Destination market</label>
-                <input id="o-market" className="input" value={origin.destinationMarket}
+                <label className="label" htmlFor="o-market">Destination market / regions (optional)</label>
+                <input id="o-market" className="input" placeholder="e.g. Germany, Norway, Sweden" value={origin.destinationMarket}
                   onChange={(e) => { setOrigin({ ...origin, destinationMarket: e.target.value }); touch(); }} />
               </div>
               <div>
-                <label className="label" htmlFor="o-buyer">Buyer / brand</label>
-                <input id="o-buyer" className="input" value={origin.buyerBrand}
+                <label className="label" htmlFor="o-buyer">Buyer / brand (optional)</label>
+                <input id="o-buyer" className="input" placeholder="e.g. EcoWear / Brand Name" value={origin.buyerBrand}
                   onChange={(e) => { setOrigin({ ...origin, buyerBrand: e.target.value }); touch(); }} />
               </div>
             </div>

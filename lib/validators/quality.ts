@@ -43,8 +43,24 @@ export const TestResultInput = z.object({
   component: z.string().max(200).optional(),
   // RSL profile selector only — limits are NEVER editable here
   rslProfile: z.object({ key: z.string().max(120), version: z.string().max(60) }).optional(),
+  status: z.enum(["PASS", "FAIL", "REVIEW REQUIRED", "NOT TESTED", "NOT APPLICABLE", "NOT VERIFIED"]).optional(),
+  requirementText: z.string().max(500).optional(),
+  groupIndex: z.number().optional(),
   published: z.boolean().optional().default(false),
   dataSource: z.string().trim().max(500).optional(),
+});
+
+export const RslItemInput = z.object({
+  substanceKey: z.string().max(80),
+  name: z.string().max(200),
+  requirementText: z.string().max(500),
+  groupIndex: z.number().int().min(1).max(12),
+  status: z.enum(["PASS", "FAIL", "NOT VERIFIED"]),
+  published: z.boolean().optional().default(true),
+});
+
+export const RslBatchInput = z.object({
+  items: z.array(RslItemInput),
 });
 
 export const RSLProfileInput = z.object({

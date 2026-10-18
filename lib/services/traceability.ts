@@ -21,8 +21,6 @@ export function validateTraceabilityFinal(input: TraceabilityData): FinalCheck {
   const o = input.originDestination;
 
   if (!o.countryOfManufacture?.trim()) throw err("Country of manufacture is required.");
-  if (!o.finalFactory?.trim()) throw err("Final factory is required.");
-  if (!o.finalFactoryLocation?.trim()) throw err("Final factory location is required.");
   if (!o.destinationCountry?.trim()) throw err("Destination country is required (use “Not specified” if unknown).");
 
   checkTier("Tier 1", input.tier1, [...TIER1_PROCESSES], null);
@@ -37,18 +35,20 @@ export function validateTraceabilityFinal(input: TraceabilityData): FinalCheck {
     if (!y.country.trim()) throw err(`Yarn manufacturer ${n}: country of origin is required.`);
   }
 
-  // P4-T23: final factory should match the Tier 1 final finishing site (warning only)
-  const finishing = input.tier1.facilities.find((g) =>
-    g.processes.includes("garment_finishing")
-  );
-  if (
-    finishing &&
-    finishing.processStatus === "Assigned" &&
-    finishing.name.trim().toLowerCase() !== o.finalFactory.trim().toLowerCase()
-  ) {
-    warnings.push(
-      `Final factory “${o.finalFactory.trim()}” differs from the Tier 1 garment-finishing site “${finishing.name.trim()}” — make them match or confirm this is intended.`
+  // P4-T23: if final factory is provided, check if it matches the Tier 1 final finishing site (warning only)
+  if (o.finalFactory?.trim()) {
+    const finishing = input.tier1.facilities.find((g) =>
+      g.processes.includes("garment_finishing")
     );
+    if (
+      finishing &&
+      finishing.processStatus === "Assigned" &&
+      finishing.name.trim().toLowerCase() !== o.finalFactory.trim().toLowerCase()
+    ) {
+      warnings.push(
+        `Final factory “${o.finalFactory.trim()}” differs from the Tier 1 garment-finishing site “${finishing.name.trim()}” — make them match or confirm this is intended.`
+      );
+    }
   }
   return { warnings };
 }

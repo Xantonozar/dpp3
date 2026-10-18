@@ -145,9 +145,11 @@ const TestResultSchema = new Schema(
     criterionSnapshot: Schema.Types.Mixed,
     status: {
       type: String,
-      enum: ["PASS", "FAIL", "REVIEW REQUIRED", "NOT TESTED", "NOT APPLICABLE"],
-      default: "NOT TESTED",
+      enum: ["PASS", "FAIL", "REVIEW REQUIRED", "NOT TESTED", "NOT APPLICABLE", "NOT VERIFIED"],
+      default: "NOT VERIFIED",
     },
+    requirementText: { type: String, trim: true },
+    groupIndex: { type: Number },
     published: { type: Boolean, default: false },
     ...recordMeta,
   },

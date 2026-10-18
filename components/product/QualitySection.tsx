@@ -6,6 +6,7 @@ import { startTour } from "@/components/tour/startTour";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { FieldHint } from "@/components/ui/FieldHint";
 import { HelpLink } from "@/components/ui/HelpLink";
+import { TOP_12_RSL_STANDARDS, type RslStatus } from "@/lib/constants/rsl-standards";
 
 type Method = { methodId?: string; label?: string; edition?: string; editionVerified?: boolean; note?: string };
 type SchemaField = { key: string; label: string; type: string; unit?: string; scale?: string; options?: string[]; required?: boolean };
@@ -97,15 +98,13 @@ export function QualitySection({ productId }: { productId: string }) {
   const [pComp, setPComp] = useState("");
   const [showMethod, setShowMethod] = useState(false);
 
-  // chemical form
-  const [subQ, setSubQ] = useState("");
-  const [subKey, setSubKey] = useState("");
-  const [cState, setCState] = useState("Value");
-  const [cValue, setCValue] = useState("");
-  const [cUnit, setCUnit] = useState("mg/kg");
-  const [cLimit, setCLimit] = useState("");
-  const [cRsl, setCRsl] = useState("");
-  const [cComp, setCComp] = useState("");
+  // 12 RSL groups state
+  const [rslStatuses, setRslStatuses] = useState<Record<string, RslStatus>>({});
+  const [selectedRslKey, setSelectedRslKey] = useState<string>(TOP_12_RSL_STANDARDS[0].key);
+  const [savingRsl, setSavingRsl] = useState(false);
+  const [rslSavedMsg, setRslSavedMsg] = useState("");
+
+
 
   const load = useCallback(async (pid: string) => {
     setBusy(true);
@@ -129,18 +128,81 @@ export function QualitySection({ productId }: { productId: string }) {
     });
   }, [id, load]);
 
+  useEffect(() => {
+    const map: Record<string, RslStatus> = {};
+    TOP_12_RSL_STANDARDS.forEach((std) => {
+      const match = results.find((r) => r.kind === "chemical" && r.substanceKey === std.key);
+      if (match?.status === "PASS" || match?.status === "FAIL" || match?.status === "NOT VERIFIED") {
+        map[std.key] = match.status as RslStatus;
+      } else {
+        map[std.key] = "NOT VERIFIED";
+      }
+    });
+    setRslStatuses(map);
+  }, [results]);
+
+  async function saveAllRsl(customStatuses?: Record<string, RslStatus>) {
+    setSavingRsl(true);
+    setRslSavedMsg("");
+    setErr("");
+    const targetMap = customStatuses || rslStatuses;
+    const items = TOP_12_RSL_STANDARDS.map((std) => ({
+      substanceKey: std.key,
+      name: std.name,
+      requirementText: std.requirement,
+      groupIndex: std.id,
+      status: targetMap[std.key] || "NOT VERIFIED",
+      published: true,
+    }));
+
+    try {
+      const res = await fetch(`/api/products/${id}/quality/results`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ items }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to save chemical compliance");
+      }
+      setRslSavedMsg("Chemical & RSL compliance statuses saved successfully.");
+      await load(id);
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Failed to save chemical compliance");
+    } finally {
+      setSavingRsl(false);
+    }
+  }
+
+  function handleRslStatusChange(key: string, status: RslStatus) {
+    const nextMap = { ...rslStatuses, [key]: status };
+    setRslStatuses(nextMap);
+  }
+
+  function markAllPass() {
+    const nextMap: Record<string, RslStatus> = {};
+    TOP_12_RSL_STANDARDS.forEach((std) => {
+      nextMap[std.key] = "PASS";
+    });
+    setRslStatuses(nextMap);
+    saveAllRsl(nextMap);
+  }
+
+  function resetAllNotVerified() {
+    const nextMap: Record<string, RslStatus> = {};
+    TOP_12_RSL_STANDARDS.forEach((std) => {
+      nextMap[std.key] = "NOT VERIFIED";
+    });
+    setRslStatuses(nextMap);
+    saveAllRsl(nextMap);
+  }
+
   const selTest = useMemo(() => tests.find((t) => t.testId === testId), [tests, testId]);
-  const selSub = useMemo(() => substances.find((s) => s.key === subKey), [substances, subKey]);
   const testMatches = useMemo(() => {
     const q = testQ.trim().toLowerCase();
     if (!q) return tests.slice(0, 20);
     return tests.filter((t) => (t.name + " " + t.testId).toLowerCase().includes(q)).slice(0, 20);
   }, [tests, testQ]);
-  const subMatches = useMemo(() => {
-    const q = subQ.trim().toLowerCase();
-    if (!q) return substances.slice(0, 20);
-    return substances.filter((s) => (s.name + " " + (s.casNumbers ?? []).join(" ")).toLowerCase().includes(q)).slice(0, 20);
-  }, [substances, subQ]);
 
   async function uploadReport(file: File) {
     if (file.size > 15_000_000) {
@@ -240,40 +302,6 @@ export function QualitySection({ productId }: { productId: string }) {
     load(id);
   }
 
-  async function addChemical(e: React.FormEvent) {
-    e.preventDefault();
-    setErr("");
-    setMsg("");
-    if (!selSub) {
-      setErr("Select a substance first.");
-      return;
-    }
-    const res = await fetch(`/api/products/${id}/quality/results`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        kind: "chemical",
-        substanceKey: selSub.key,
-        resultState: cState,
-        result: cState === "Value" ? { value: cValue } : {},
-        reportingLimit: cState === "ND" && cLimit ? Number(cLimit) : undefined,
-        unit: cUnit || undefined,
-        rslProfile: cRsl ? JSON.parse(cRsl) : undefined,
-        component: cComp || undefined,
-      }),
-    });
-    const body = await res.json();
-    if (!res.ok) {
-      setErr(body.error ?? "Save failed");
-      return;
-    }
-    setMsg(`Saved — ${body.data.status}. ${body.evaluation ?? ""}`);
-    setMsgFor("chemical");
-    setSecMsg("");
-    setCValue("");
-    setCLimit("");
-    load(id);
-  }
 
   async function togglePublish(r: Result) {
     await fetch(`/api/products/${id}/quality/results`, {
@@ -301,9 +329,6 @@ export function QualitySection({ productId }: { productId: string }) {
     if (rep.labName.trim() || rep.reportNumber.trim() || repFile || rep.reviewedBy.trim() || rep.signOffDate) {
       d.push({ label: "4.1 lab report", form: "qform-report" });
     }
-    if (subKey || cValue.trim() || cLimit.trim() || cRsl || cComp.trim()) {
-      d.push({ label: "4.2 chemical result", form: "qform-chemical" });
-    }
     if (
       testId || pRsl || pReport || pDate || pComp.trim() ||
       Object.values(pVals).some((v) => String(v ?? "").trim() !== "")
@@ -311,7 +336,7 @@ export function QualitySection({ productId }: { productId: string }) {
       d.push({ label: "4.3 test result", form: "qform-physical" });
     }
     return d;
-  }, [rep, repFile, subKey, cValue, cLimit, cRsl, cComp, testId, pVals, pRsl, pReport, pDate, pComp]);
+  }, [rep, repFile, testId, pVals, pRsl, pReport, pDate, pComp]);
 
   function saveSection() {
     if (dirtyForms.length === 0) {
@@ -406,119 +431,184 @@ export function QualitySection({ productId }: { productId: string }) {
             </form>
           </CollapsibleSection>
 
-          {/* 4.2 */}
-          <CollapsibleSection id="quality-chemicals" level={2} help={() => startTour("quality", "quality-chemicals")} title="4.2 Chemicals & Restricted Substances"
-            summary={`${chemical.length} result(s)`}>
-            <div className="space-y-2">
-              {chemical.map((r) => {
-                const h = resultHeadline(r, tests, substances);
+          {/* 4.2 Chemicals & Restricted Substances (RSL) */}
+          <CollapsibleSection
+            id="quality-chemicals"
+            level={2}
+            help={() => startTour("quality", "quality-chemicals")}
+            title="4.2 Chemicals & Restricted Substances (RSL)"
+            summary={`${Object.values(rslStatuses).filter((s) => s === "PASS").length}/12 PASS · ${Object.values(rslStatuses).filter((s) => s === "FAIL").length} FAIL · ${Object.values(rslStatuses).filter((s) => s === "NOT VERIFIED").length} Not Verified`}
+            defaultOpen
+          >
+            {/* Quick Actions & Compliance Summary */}
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-forest-50/70 p-4 ring-1 ring-forest-100">
+              <div>
+                <p className="text-sm font-black text-forest-950">
+                  Top 12 Restricted Substances for Garments
+                </p>
+                <div className="mt-1 flex flex-wrap gap-2 text-xs">
+                  <span className="badge bg-emerald-100 font-bold text-emerald-800">
+                    ✓ {Object.values(rslStatuses).filter((s) => s === "PASS").length} PASS
+                  </span>
+                  <span className="badge bg-red-100 font-bold text-red-800">
+                    ✕ {Object.values(rslStatuses).filter((s) => s === "FAIL").length} FAIL
+                  </span>
+                  <span className="badge bg-stone-100 font-bold text-stone-700">
+                    ○ {Object.values(rslStatuses).filter((s) => s === "NOT VERIFIED").length} NOT VERIFIED
+                  </span>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={markAllPass}
+                  disabled={savingRsl}
+                  className="rounded-xl bg-forest-700 px-3 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-forest-800"
+                >
+                  ⚡ Mark All as PASS
+                </button>
+                <button
+                  type="button"
+                  onClick={resetAllNotVerified}
+                  disabled={savingRsl}
+                  className="rounded-xl bg-white px-3 py-1.5 text-xs font-bold text-forest-800 ring-1 ring-forest-200 hover:bg-forest-100"
+                >
+                  ↺ Reset to NOT VERIFIED
+                </button>
+                <button
+                  type="button"
+                  onClick={() => saveAllRsl()}
+                  disabled={savingRsl}
+                  className="btn-primary !py-1.5 text-xs"
+                >
+                  {savingRsl ? "Saving…" : "💾 Save Changes"}
+                </button>
+              </div>
+            </div>
+
+            {rslSavedMsg && (
+              <p className="mt-3 rounded-xl bg-forest-100 px-4 py-2.5 text-sm font-semibold text-forest-800">
+                ✓ {rslSavedMsg}
+              </p>
+            )}
+
+            {/* Dropdown Quick Selector */}
+            <div className="mt-4 rounded-xl border border-forest-200 bg-white p-4 shadow-sm">
+              <label className="label" htmlFor="rsl-select-group">
+                Select Substance Group (Dropdown)
+              </label>
+              <select
+                id="rsl-select-group"
+                className="input"
+                value={selectedRslKey}
+                onChange={(e) => setSelectedRslKey(e.target.value)}
+              >
+                {TOP_12_RSL_STANDARDS.map((std) => (
+                  <option key={std.key} value={std.key}>
+                    {std.id}. {std.name} — Status: [{rslStatuses[std.key] || "NOT VERIFIED"}]
+                  </option>
+                ))}
+              </select>
+
+              {(() => {
+                const currentStd = TOP_12_RSL_STANDARDS.find((s) => s.key === selectedRslKey) || TOP_12_RSL_STANDARDS[0];
+                const currentStatus = rslStatuses[currentStd.key] || "NOT VERIFIED";
                 return (
-                  <CollapsibleSection key={r._id} id={`chem-${r._id}`} level={3}
-                    title={h.name} summary={`${h.detail} · ${r.status}`}>
-                    <StatusBadge tone={pillTone(r.status)}>{r.status}</StatusBadge>
-                    {r.status === "REVIEW REQUIRED" && reviewHint(r, "crsl")}
-                    {r.criterionSnapshot && (
-                      <p className="mt-1 text-xs text-forest-900/60">
-                        Criterion: {r.criterionSnapshot.operator} {r.criterionSnapshot.value} {r.criterionSnapshot.unit}
-                        {r.rslProfile ? ` · ${r.rslProfile.key} v${r.rslProfile.version}` : ""}
-                      </p>
-                    )}
-                    <div className="mt-2 flex gap-2">
-                      <button onClick={() => togglePublish(r)} className="btn-secondary !py-1.5 text-xs">
-                        {r.published ? "Unpublish" : "Publish"}
-                      </button>
-                      <button onClick={() => delResult(r)} className="btn-secondary !py-1.5 text-xs !text-red-700">Delete</button>
+                  <div className="mt-3 rounded-lg border border-forest-100 bg-forest-50/50 p-3.5">
+                    <p className="text-xs font-black uppercase tracking-wider text-forest-900">
+                      📋 Standard Requirement (Automatic):
+                    </p>
+                    <p className="mt-1 text-sm font-semibold text-forest-950">
+                      {currentStd.requirement}
+                    </p>
+
+                    <div className="mt-3 max-w-xs">
+                      <label className="label" htmlFor="rsl-select-status">
+                        STATUS (Select from 3 options)
+                      </label>
+                      <select
+                        id="rsl-select-status"
+                        className={`input font-black ${
+                          currentStatus === "PASS"
+                            ? "bg-emerald-50 text-emerald-900 ring-emerald-300"
+                            : currentStatus === "FAIL"
+                            ? "bg-red-50 text-red-900 ring-red-300"
+                            : "bg-stone-50 text-stone-800 ring-stone-300"
+                        }`}
+                        value={currentStatus}
+                        onChange={(e) => handleRslStatusChange(currentStd.key, e.target.value as RslStatus)}
+                      >
+                        <option value="PASS">1. PASS</option>
+                        <option value="FAIL">2. FAIL</option>
+                        <option value="NOT VERIFIED">3. NOT VERIFIED</option>
+                      </select>
                     </div>
-                  </CollapsibleSection>
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* Pre-populated 12 Groups List */}
+            <div className="mt-4 space-y-3">
+              <p className="text-xs font-black uppercase tracking-wider text-forest-900/70">
+                Top 12 Chemical & RSL Groups:
+              </p>
+              {TOP_12_RSL_STANDARDS.map((std) => {
+                const status = rslStatuses[std.key] || "NOT VERIFIED";
+                return (
+                  <div
+                    key={std.key}
+                    className="flex flex-col gap-3 rounded-xl border border-forest-100 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="grid size-6 shrink-0 place-items-center rounded-full bg-forest-100 text-xs font-black text-forest-800">
+                          {std.id}
+                        </span>
+                        <h4 className="text-sm font-bold text-forest-950">{std.name}</h4>
+                      </div>
+                      <div className="mt-2 rounded-lg bg-forest-50/60 p-2.5 text-xs text-forest-900">
+                        <span className="font-semibold text-forest-950">Requirement: </span>
+                        {std.requirement}
+                      </div>
+                    </div>
+
+                    <div className="flex shrink-0 items-center gap-2 sm:flex-col sm:items-end">
+                      <label className="text-[11px] font-bold uppercase text-forest-900/60 sm:text-right" htmlFor={`rsl-status-${std.key}`}>
+                        Status
+                      </label>
+                      <select
+                        id={`rsl-status-${std.key}`}
+                        value={status}
+                        onChange={(e) => handleRslStatusChange(std.key, e.target.value as RslStatus)}
+                        className={`rounded-lg px-3 py-1.5 text-xs font-black ring-1 ${
+                          status === "PASS"
+                            ? "bg-emerald-50 text-emerald-800 ring-emerald-300"
+                            : status === "FAIL"
+                            ? "bg-red-50 text-red-800 ring-red-300"
+                            : "bg-stone-50 text-stone-700 ring-stone-300"
+                        }`}
+                      >
+                        <option value="PASS">PASS</option>
+                        <option value="FAIL">FAIL</option>
+                        <option value="NOT VERIFIED">NOT VERIFIED</option>
+                      </select>
+                    </div>
+                  </div>
                 );
               })}
-              {chemical.length === 0 && <p className="text-sm text-forest-900/60">No chemical results yet — pick a substance in the form below.</p>}
             </div>
-            <form id="qform-chemical" onSubmit={addChemical} className="mt-4 space-y-3 rounded-xl bg-forest-50/60 p-4 ring-1 ring-forest-100">
-              <div>
-                <label className="label" htmlFor="sub-q">Select substance</label>
-                <input id="sub-q" className="input" placeholder="Search name or CAS…" value={subQ} onChange={(e) => setSubQ(e.target.value)} />
-                <div className="mt-1.5 flex max-h-44 flex-wrap gap-1.5 overflow-y-auto">
-                  {subMatches.map((s) => (
-                    <button type="button" key={s.key} onClick={() => setSubKey(s.key)}
-                      className={`badge cursor-pointer ring-1 ${subKey === s.key ? "bg-forest-700 text-white ring-forest-700" : "bg-white text-forest-800 ring-forest-200"}`}>
-                      {s.name}
-                    </button>
-                  ))}
-                </div>
-                {selSub && (
-                  <p className="mt-1.5 text-xs text-forest-900/60">
-                    {selSub.isGroup || selSub.casNumbers.length === 0
-                      ? "Multiple - see substance list"
-                      : `CAS ${selSub.casNumbers.join(", ")}`}
-                    {(selSub.components ?? []).length > 0 && ` · ${selSub.components.join(", ")}`}
-                  </p>
-                )}
-              </div>
-              <div className="grid gap-3 sm:grid-cols-3">
-                <div>
-                  <label className="label" htmlFor="cs">Result state</label>
-                  <select id="cs" className="input" value={cState} onChange={(e) => setCState(e.target.value)}>
-                    <option>Value</option><option>ND</option><option>Not Tested</option><option>Not Applicable</option><option>Unknown</option>
-                  </select>
-                </div>
-                {cState === "Value" && (
-                  <>
-                    <div>
-                      <label className="label" htmlFor="cv">Result value *</label>
-                      <input id="cv" className="input" inputMode="decimal" value={cValue} onChange={(e) => setCValue(e.target.value)} required />
-                    </div>
-                    <div>
-                      <label className="label" htmlFor="cu">Unit</label>
-                      <input id="cu" className="input" value={cUnit} onChange={(e) => setCUnit(e.target.value)} />
-                    </div>
-                  </>
-                )}
-                {cState === "ND" && (
-                  <>
-                    <div>
-                      <label className="label" htmlFor="cl">Reporting limit * (never 0)</label>
-                      <input id="cl" className="input" inputMode="decimal" value={cLimit} onChange={(e) => setCLimit(e.target.value)} required />
-                    </div>
-                    <div>
-                      <label className="label" htmlFor="cu2">Unit</label>
-                      <input id="cu2" className="input" value={cUnit} onChange={(e) => setCUnit(e.target.value)} />
-                    </div>
-                  </>
-                )}
-              </div>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div>
-                  <label className="label" htmlFor="crsl">RSL profile (limits come from here)</label>
-                  <select id="crsl" className="input" value={cRsl} onChange={(e) => setCRsl(e.target.value)}>
-                    <option value="">No profile — saved without a verdict</option>
-                    {rsls.map((r) => (
-                      <option key={r.key + r.version} value={JSON.stringify({ key: r.key, version: r.version })}>
-                        {r.key} v{r.version}{r.buyerProgram ? ` · ${r.buyerProgram}` : ""}{r.market ? ` · ${r.market}` : ""}
-                      </option>
-                    ))}
-                  </select>
-                  {rsls.length === 0 && (
-                    <p className="mt-1 text-xs font-semibold text-amber-700">
-                      No profiles yet — <a href="/admin/quality-catalogs#qc-rsl" className="underline">create one in Quality catalogs →</a>
-                    </p>
-                  )}
-                  <FieldHint>
-                    The verdict comes from this profile&apos;s criteria — key and unit must match your
-                    entry. Choose it before saving: saved results are never re-evaluated.{" "}
-                    <HelpLink anchor="help-verdicts" label="Why verdicts show REVIEW REQUIRED" />
-                  </FieldHint>
-                </div>
-                <div>
-                  <label className="label" htmlFor="cc">Component scope</label>
-                  <input id="cc" className="input" value={cComp} onChange={(e) => setCComp(e.target.value)} placeholder="e.g. Main fabric" />
-                </div>
-              </div>
-              <button className="btn-primary !py-2.5 text-xs" type="submit">Save chemical result</button>
-              {msg && msgFor === "chemical" && (
-                <p className="mt-2 rounded-xl bg-forest-100 px-4 py-2.5 text-sm font-semibold text-forest-800">{msg}</p>
-              )}
-            </form>
+
+            <div className="mt-4 flex justify-end">
+              <button
+                type="button"
+                onClick={() => saveAllRsl()}
+                disabled={savingRsl}
+                className="btn-primary"
+              >
+                {savingRsl ? "Saving…" : "Save Chemical Compliance"}
+              </button>
+            </div>
           </CollapsibleSection>
 
           {/* 4.3 */}

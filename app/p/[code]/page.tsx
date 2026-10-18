@@ -230,7 +230,7 @@ export default async function PublicPage({
             <dl className="grid grid-cols-2 gap-2 text-sm">
               {s.materials && <div className="rounded-xl bg-forest-50/70 p-3"><dt className="text-xs text-forest-900/60">Fabric</dt><dd className="font-bold">{s.materials.fibers.map((f) => `${f.label} ${f.percentage}%`).join(" + ")}</dd></div>}
               {s.environmental && <div className="rounded-xl bg-forest-50/70 p-3"><dt className="text-xs text-forest-900/60">Carbon</dt><dd className="font-bold">{s.environmental.carbonKgCo2e} kg CO₂e</dd></div>}
-              {origin?.finalFactory && <div className="rounded-xl bg-forest-50/70 p-3"><dt className="text-xs text-forest-900/60">Made in</dt><dd className="font-bold">{origin.finalFactory}, {origin.countryOfManufacture}</dd></div>}
+              {origin?.countryOfManufacture && <div className="rounded-xl bg-forest-50/70 p-3"><dt className="text-xs text-forest-900/60">Country of origin</dt><dd className="font-bold">{origin.countryOfManufacture}</dd></div>}
               {s.packaging && <div className="rounded-xl bg-forest-50/70 p-3"><dt className="text-xs text-forest-900/60">Packaging</dt><dd className="font-bold">{s.packaging.type}</dd></div>}
             </dl>
           </Section>
@@ -258,11 +258,10 @@ export default async function PublicPage({
 
         {s.traceability && (
           <div id="s-traceability">
-            <Section id="s-traceability-sec" title="Traceability & Origin" summary={`${origin?.finalFactory ?? ""} · ${origin?.countryOfManufacture ?? ""}`}>
-              <dl className="grid gap-1 text-sm sm:grid-cols-2">
-                <div><dt className="label !mb-0">Made in</dt><dd>{origin?.countryOfManufacture}</dd></div>
-                <div><dt className="label !mb-0">Final factory</dt><dd>{origin?.finalFactory} · {origin?.finalFactoryLocation}</dd></div>
-                <div><dt className="label !mb-0">Destination</dt><dd>{origin?.destinationCountry}{origin?.destinationMarket ? ` · ${origin.destinationMarket}` : ""}</dd></div>
+            <Section id="s-traceability-sec" title="Traceability & Origin" summary={`${origin?.countryOfManufacture ?? ""}${origin?.destinationCountry ? ` → ${origin.destinationCountry}` : ""}`}>
+              <dl className="grid gap-2 text-sm sm:grid-cols-2">
+                <div><dt className="label !mb-0">Country of origin / manufacture</dt><dd className="font-semibold text-forest-950">{origin?.countryOfManufacture || "—"}</dd></div>
+                <div><dt className="label !mb-0">Destination</dt><dd className="font-semibold text-forest-950">{origin?.destinationCountry || "—"}{origin?.destinationMarket ? ` · ${origin.destinationMarket}` : ""}</dd></div>
               </dl>
               <div className="mt-3 overflow-x-auto rounded-xl ring-1 ring-forest-100">
                 <table className="w-full min-w-[480px] text-left text-sm">
@@ -329,22 +328,46 @@ export default async function PublicPage({
                   <details key={i} className="rounded-xl bg-white ring-1 ring-forest-100">
                     <summary className="cursor-pointer list-none px-4 py-3 [&::-webkit-details-marker]:hidden">
                       <span className="flex items-center justify-between gap-2">
-                        <span className="text-[11px] font-bold uppercase text-forest-700">{String(r.method ?? "Lab test")}</span>
-                        <span className={`badge ${statusTone(String(r.status))}`}>{String(r.status)}</span>
+                        <span className="text-[11px] font-bold uppercase text-forest-700">
+                          {r.kind === "chemical" ? "Chemical & RSL" : String(r.method ?? "Lab test")}
+                        </span>
+                        <span className={`badge font-bold ${statusTone(String(r.status))}`}>{String(r.status)}</span>
                       </span>
-                      <span className="block text-sm font-extrabold text-forest-950">{r.name}</span>
-                      <span className="block text-lg font-black text-forest-800">
-                        {r.kind === "chemical"
-                          ? `${String(r.value ?? "")} ${String(r.unit ?? "")}`.trim()
-                          : String((r as { breakdown?: string }).breakdown ?? "")}
-                      </span>
+                      <span className="mt-1 block text-sm font-extrabold text-forest-950">{r.name}</span>
+                      {r.kind === "chemical" ? (
+                        <div className="mt-2 rounded-lg bg-forest-50/60 p-2 text-xs text-forest-900">
+                          <span className="font-bold text-forest-950">Requirement: </span>
+                          {String((r as { criterion?: string; requirementText?: string }).requirementText || (r as { criterion?: string }).criterion || "Standard RSL Requirement")}
+                        </div>
+                      ) : (
+                        <span className="block text-lg font-black text-forest-800">
+                          {String((r as { breakdown?: string }).breakdown ?? "")}
+                        </span>
+                      )}
                     </summary>
                     <div className="px-4 pb-4 text-xs leading-relaxed text-forest-900/75">
-                      {"cas" in r && <p>CAS: {String(r.cas)}</p>}
-                      {"component" in r && r.component ? <p>Component: {String(r.component)}</p> : null}
-                      <p>Criterion: {String((r as { criterion?: string }).criterion ?? "")}</p>
-                      {"testDate" in r && r.testDate ? <p>Date: {String(r.testDate)}</p> : null}
-                      {"reportRef" in r && r.reportRef ? <p>Report: {String(r.reportRef)} ({String((r as { labLine?: string }).labLine ?? "")})</p> : null}
+                      {r.kind === "chemical" ? (
+                        <div className="space-y-1">
+                          <p>
+                            <strong className="text-forest-950">Compliance Status:</strong>{" "}
+                            <span className={`font-bold ${r.status === "PASS" ? "text-emerald-700" : r.status === "FAIL" ? "text-red-700" : "text-stone-600"}`}>
+                              {String(r.status)}
+                            </span>
+                          </p>
+                          <p>
+                            <strong className="text-forest-950">Standard:</strong>{" "}
+                            {String((r as { criterion?: string; requirementText?: string }).requirementText || (r as { criterion?: string }).criterion || "")}
+                          </p>
+                        </div>
+                      ) : (
+                        <>
+                          {"cas" in r && <p>CAS: {String(r.cas)}</p>}
+                          {"component" in r && r.component ? <p>Component: {String(r.component)}</p> : null}
+                          <p>Criterion: {String((r as { criterion?: string }).criterion ?? "")}</p>
+                          {"testDate" in r && r.testDate ? <p>Date: {String(r.testDate)}</p> : null}
+                          {"reportRef" in r && r.reportRef ? <p>Report: {String(r.reportRef)} ({String((r as { labLine?: string }).labLine ?? "")})</p> : null}
+                        </>
+                      )}
                     </div>
                   </details>
                 ))}

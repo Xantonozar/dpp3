@@ -11,6 +11,7 @@ import { CertCatalog, CertRecord } from "../models/Certification";
 import { Facility } from "../models/Facility";
 import { DropdownOption } from "../models/DropdownOption";
 import { SizeSystem } from "../models/SizeSystem";
+import { TOP_12_RSL_STANDARDS } from "../constants/rsl-standards";
 
 export type SectorCheck = { sector: string; saved: boolean; detail: string; missing: string[] };
 
@@ -232,6 +233,8 @@ export async function buildSnapshot(productId: string): Promise<Record<string, u
       criterionSnapshot?: { operator: string; value: number; unit: string };
       labReportId?: unknown;
       rslProfile?: { key: string; version: string };
+      requirementText?: string;
+      groupIndex?: number;
     }[]
   ).map((r) => {
     const rep = r.labReportId ? reportById.get(String(r.labReportId)) : undefined;
@@ -253,17 +256,20 @@ export async function buildSnapshot(productId: string): Promise<Record<string, u
         labLine,
       };
     }
+    const std = TOP_12_RSL_STANDARDS.find((x) => x.key === r.substanceKey);
     const s = r.substanceKey ? subByKey.get(r.substanceKey) : undefined;
     return {
       kind: "chemical",
-      name: s?.name ?? r.substanceKey ?? "Substance",
+      name: std?.name ?? s?.name ?? r.substanceKey ?? "Substance",
       cas: s && !s.isGroup && s.casNumbers.length > 0 ? s.casNumbers.join(", ") : "Multiple - see substance list",
       value: r.resultState === "ND" ? `ND (<${r.reportingLimit})` : String(Object.values(r.result ?? {})[0] ?? r.resultState),
       unit: r.unit ?? "",
       status: r.status,
-      criterion: r.criterionSnapshot
+      criterion: r.requirementText || std?.requirement || (r.criterionSnapshot
         ? `${r.criterionSnapshot.operator} ${r.criterionSnapshot.value} ${r.criterionSnapshot.unit ?? ""}`.trim()
-        : "Result recorded - criterion not configured",
+        : "Result recorded - criterion not configured"),
+      requirementText: r.requirementText || std?.requirement || "",
+      groupIndex: r.groupIndex ?? std?.id,
       component: r.component ?? "",
     };
   });

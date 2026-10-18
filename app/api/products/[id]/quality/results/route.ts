@@ -4,7 +4,7 @@ import { dbConnect } from "@/lib/db";
 import { requireAdmin, toHttpError } from "@/lib/auth";
 import { Product } from "@/lib/models/Product";
 import { TestCatalog, Substance, RSLProfile, TestResult } from "@/lib/models/Quality";
-import { TestResultInput } from "@/lib/validators/quality";
+import { TestResultInput, RslBatchInput } from "@/lib/validators/quality";
 import { testEvaluator, type Criterion, type SchemaField } from "@/lib/services/testEvaluator";
 import { writeAudit } from "@/lib/services/audit";
 
@@ -57,7 +57,7 @@ export async function GET(req: Request, { params }: Ctx) {
     const kind = new URL(req.url).searchParams.get("kind") ?? "";
     const filter: Record<string, unknown> = { productId: id };
     if (kind) filter.kind = kind;
-    const docs = await TestResult.find(filter).sort({ createdAt: -1 }).lean();
+    const docs = await TestResult.find(filter).sort({ groupIndex: 1, createdAt: -1 }).lean();
     return NextResponse.json({ data: docs });
   } catch (e) {
     const { status, message } = toHttpError(e);
@@ -72,7 +72,59 @@ export async function POST(req: Request, { params }: Ctx) {
     if (!mongoose.isValidObjectId(id)) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
-    const parsed = TestResultInput.safeParse(await req.json());
+
+    const raw = await req.json();
+
+    // Check if this is a 12-item RSL batch update
+    if (Array.isArray(raw?.items)) {
+      const parsedBatch = RslBatchInput.safeParse(raw);
+      if (!parsedBatch.success) {
+        return NextResponse.json(
+          { error: "Invalid RSL batch", details: parsedBatch.error.flatten() },
+          { status: 400 }
+        );
+      }
+      await dbConnect();
+      const product = await Product.findById(id);
+      if (!product) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+      const updatedDocs = [];
+      for (const item of parsedBatch.data.items) {
+        const doc = await TestResult.findOneAndUpdate(
+          { productId: id, kind: "chemical", substanceKey: item.substanceKey },
+          {
+            $set: {
+              productId: id,
+              kind: "chemical",
+              substanceKey: item.substanceKey,
+              status: item.status,
+              requirementText: item.requirementText,
+              groupIndex: item.groupIndex,
+              published: item.published !== false,
+              resultState: item.status === "PASS" ? "ND" : item.status === "FAIL" ? "Value" : "Not Tested",
+              updatedBy: undefined,
+            },
+            $setOnInsert: {
+              createdBy: undefined,
+            },
+          },
+          { upsert: true, new: true, setDefaultsOnInsert: true }
+        );
+        updatedDocs.push(doc);
+      }
+
+      await writeAudit({
+        entity: "TestResult",
+        entityId: id,
+        field: "rslBatch",
+        newValue: updatedDocs.length,
+        reason: "12-group RSL compliance update",
+      });
+
+      return NextResponse.json({ ok: true, data: updatedDocs });
+    }
+
+    const parsed = TestResultInput.safeParse(raw);
     if (!parsed.success) {
       return NextResponse.json(
         { error: "Invalid result", details: parsed.error.flatten() },
